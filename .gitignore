@@ -1,0 +1,4 @@
+.toml
+.venv/
+data/
+output/
