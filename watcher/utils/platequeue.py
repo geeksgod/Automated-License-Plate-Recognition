@@ -2,8 +2,8 @@ import time
 import datetime
 from collections import deque
 
-from models.plateinfo import PlateInfo
-from utils.db import MongoDBManager
+from watcher.models.plateinfo import PlateInfo
+from watcher.utils.db import MongoDBManager
 from config import CONFIG
 
 

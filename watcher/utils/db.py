@@ -3,7 +3,7 @@ import certifi
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from config import CONFIG
-from models.plateinfo import PlateInfo
+from watcher.models.plateinfo import PlateInfo
 import datetime 
 
 class MongoDBManager:

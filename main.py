@@ -48,12 +48,12 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QGridLayout, QFormLayout, QTableWidget, QTableWidgetItem,
     QLineEdit, QHeaderView, QFrame, QMessageBox, QAbstractItemView,
     QScrollArea, QListWidget, QListWidgetItem, QStackedWidget, QDialog,
-    QDialogButtonBox
+    QDialogButtonBox,QInputDialog
 )
 
 from config import CONFIG
 
-from utils.db import MongoDBManager
+from watcher.utils.db import MongoDBManager
 
 
 # ---------------------------------------------------------------------------
@@ -761,7 +761,6 @@ class MainWindow(QMainWindow):
         self._synthetic_frame_counter = 0
 
         # --- Widgets ---
-        self.video_panel = VideoPanel()
         self.pump_panel = PumpControlPanel()
         self.watchlist_panel = WatchlistPanel(self.mongo)
         self.fueling_panel = FuelingLogPanel(self.mongo)
@@ -776,7 +775,6 @@ class MainWindow(QMainWindow):
 
         # --- Video timer (~30fps) ---
         self.video_timer = QTimer(self)
-        self.video_timer.timeout.connect(self._update_video_frame)
         self.video_timer.start(33)
 
     def _build_layout(self):
@@ -791,8 +789,6 @@ class MainWindow(QMainWindow):
         # Right: video feed (always visible) + the section chosen from the menu
         content_col = QVBoxLayout()
         content_col.setSpacing(16)
-
-        content_col.addWidget(self.video_panel, stretch=2)
 
         self.stacked = QStackedWidget()
         self.stacked.addWidget(self._wrap_top(self.pump_panel))
@@ -819,33 +815,9 @@ class MainWindow(QMainWindow):
         v.addStretch(1)
         return wrap
 
-    # ---- Video pipeline ----
-    def _update_video_frame(self):
-        frame = None
-        if self.cap is not None:
-            ret, frame = self.cap.read()
-            if not ret:
-                # loop a video file back to the start; otherwise fall back
-                self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                ret, frame = self.cap.read()
-                if not ret:
-                    frame = None
-        if frame is None:
-            frame = self._make_synthetic_frame()
-        self.video_panel.update_frame(frame)
 
-    def _make_synthetic_frame(self):
-        self._synthetic_frame_counter += 1
-        h, w = 480, 720
-        t = self._synthetic_frame_counter
-        frame = np.zeros((h, w, 3), dtype=np.uint8)
-        frame[:] = (30, 32, 38)
-        cv2.putText(frame, "NO CAMERA SOURCE - DEMO PATTERN", (24, 36),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.65, (120, 200, 120), 2)
-        cx = int(w / 2 + 200 * np.sin(t / 30.0))
-        cv2.circle(frame, (cx, h // 2), 28, (0, 200, 120), -1)
-        cv2.putText(frame, PUMP_ID, (24, h - 24), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (200, 200, 200), 2)
-        return frame
+
+   
 
     # ---- Detection / simulation pipeline ----
     def _simulate_plate(self, rego: str):
@@ -865,26 +837,32 @@ class MainWindow(QMainWindow):
         self.fueling_panel.refresh()
 
     def _trigger_alert(self):
-        self.video_panel.set_alert(True)
         self.pump_panel.set_status(ok=False)
 
     def _clear_alert(self):
-        self.video_panel.set_alert(False)
         self.pump_panel.set_status(ok=True)
 
     def _on_manual_reset(self):
         self._clear_alert()
-        self.video_panel.set_plate_hud("--", "--")
 
     # ---- Card actions: watchlist / police report ----
     def _on_add_to_watchlist(self, record: dict):
         rego = record.get("plate", "").strip()
         if not rego:
             return
-        reason = f"Auto-added from fueling log ({record.get('status', 'Unknown')})"
-        self.mongo.add_to_watchlist(rego, reason)
-        self.watchlist_panel.refresh()
-        QMessageBox.information(self, "Added to Watchlist", f"{rego} has been added to the watchlist.")
+        default_text = f"Auto-added from fueling log ({record.get('status', 'Unknown')})"
+        reason, ok = QInputDialog.getText(
+            self, 
+            "Add to Watchlist", 
+            f"Enter reason for {rego}:", 
+            text=default_text
+        )
+        if ok:
+            if not reason.strip():
+                reason = "No reason provided"
+            self.mongo.add_to_watchlist(rego, reason)
+            self.watchlist_panel.refresh()
+            QMessageBox.information(self, "Added to Watchlist", f"{rego} has been added to the watchlist.")
 
     def _on_report_police(self, record: dict):
         footage = self.video_panel.get_current_pixmap()

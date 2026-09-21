@@ -3,9 +3,9 @@ import time
 from pathlib import Path
 from collections import deque, Counter
 from config import CONFIG
-from inference.alpr import ALPRENGINE
-from models.plateinfo import PlateInfo
-from utils.platequeue import PlateQueue
+from watcher.inference.alpr import ALPRENGINE
+from watcher.models.plateinfo import PlateInfo
+from watcher.utils.platequeue import PlateQueue
 
 def process():
     capture = cv2.VideoCapture(Path('test1.mp4'))
