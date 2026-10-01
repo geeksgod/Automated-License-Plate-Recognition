@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 @dataclass()
-class PlateInfo:
+class plateInfo:
     plate: str
     confidence: float
     frame: object

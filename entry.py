@@ -12,7 +12,8 @@ from ui.pumpcontrollpanel import PumpControlPanel
 from ui.sidemenu import SidebarMenu
 from ui.watchlist import WatchlistPanel
 from ui.fuelingrecord import FuelingLogPanel
-
+from ui.reportpolice import ReportPoliceDialog
+from process import BowserWatchWorker
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -30,7 +31,15 @@ class MainWindow(QMainWindow):
             self.watch_list = WatchlistPanel(mongo = self.mongo)
             self.fuelingrecord = FuelingLogPanel(mongo= self.mongo )
 
+            self.fuelingrecord.report_police_requested.connect(self._on_report_police)
+            self.fuelingrecord.add_to_watchlist_requested.connect(self._on_add_to_watchlist)
+
+            self.worker = BowserWatchWorker()
+            self.worker.plate_detected.connect(self.pump_panel.refresh_queue)
+            self.worker.start()
+
             self._build_layout()
+           
            
     def _build_layout(self):
         central = QWidget()
@@ -64,6 +73,43 @@ class MainWindow(QMainWindow):
         v.addWidget(widget)
         v.addStretch(1)
         return wrap
+
+    def _trigger_alert(self):
+        self.pump_panel.set_status(ok=False)
+
+    def _clear_alert(self):
+        self.pump_panel.set_status(ok=True)
+
+    def _on_manual_reset(self):
+        self._clear_alert()
+
+    def _on_add_to_watchlist(self, record: dict):
+        plate = record.get("plate", "").strip()
+        if not plate:
+            return
+        default_text = f"Auto-added from fueling log ({record.get('status', 'Unknown')})"
+        amount, ok = QInputDialog.getText(
+            self, 
+            "Add to Watchlist", 
+            f"Enter cost of fuel and liters {plate}:", 
+            text=default_text
+        )
+        if ok:
+            if not amount.strip():
+                amount = "No amount provided"
+            self.mongo.add_to_watchlist(plate, amount)
+            self.watch_list.refresh()
+            QMessageBox.information(self, "Added to Watchlist", f"{plate} has been added to the watchlist.")
+        else:
+            pass
+
+    def _on_report_police(self, record: dict):
+        dialog = ReportPoliceDialog(record, parent=self)
+        dialog.exec()
+
+    def closeEvent(self, event):
+        self.mongo.close()
+        super().closeEvent(event)
     
 
 

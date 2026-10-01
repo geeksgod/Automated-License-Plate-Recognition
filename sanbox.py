@@ -1,89 +1,77 @@
-import cv2
-import multiprocessing
+import sys
 import time
-from learn import process
-from main import main
-def video_playback_worker(video_path, frame_queue, run_flag):
-    """
-    Process 1: Responsible ONLY for reading and displaying the video smoothly.
-    """
-    cap = cv2.VideoCapture(video_path)
-    
-    if not cap.isOpened():
-        print("Error: Could not open video.")
-        run_flag.value = False
-        return
+from datetime import datetime
+from PyQt6.QtCore import QThread, pyqtSignal, Qt
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, 
+    QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
+)
 
-    while cap.isOpened() and run_flag.value:
-        ret, frame = cap.read()
-        if not ret:
-            print("Video ended.")
-            break
+class DetectorWorker(QThread):
+    # Signal sending (plate_number, timestamp, confidence)
+    plate_detected = pyqtSignal(dict)
 
-    #     # Send frame to the processing process if the queue isn't backed up.
-    #     # This keeps the video fluid even if processing drops behind.
-    #     if not frame_queue.full():
-    #         try:
-    #             frame_queue.put_nowait(frame)
-    #         except Exception:
-    #             pass
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.running = True
 
-        # Display the video frame instantly
-        cv2.imshow("Smooth Video Stream (Multiprocessed)", frame)
+    def run(self):
+        """Simulate or run actual detection loop here."""
+        while self.running:
+            # Replace this block with your actual detector output
+            time.sleep(1.5)  # Simulate detection interval
+            detection = {
+                "plate": "7XYZ890",
+                "confidence": 0.97,
+                "timestamp": datetime.now().strftime("%H:%M:%S")
+            }
+            self.plate_detected.emit(detection)
 
-    #     # Handle exit key
-    #     if cv2.waitKey(25) & 0xFF == ord('q'):
-    #         break
-
-    # # Signal the other process to shut down cleanly
-    # run_flag.value = False
-    # cap.release()
-    # cv2.destroyAllWindows()
+    def stop(self):
+        self.running = False
+        self.wait()
 
 
-def image_processing_worker(frame_queue, run_flag):
-    """
-    Process 2: Runs on a separate CPU core. Handles heavy computation (AI, OCR, MongoDB).
-    """
-    print("Processing worker started on a separate CPU core...")
-    
-    while run_flag.value:
-        try:
-            # Wait for a frame (times out after 1 second to check if run_flag changed)
-            frame = frame_queue.get(timeout=1)
-        except Exception:
-            continue
+class PlateDashboard(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Live License Plate Monitor")
+        self.resize(500, 400)
 
-        # --- INSERT YOUR HEAVY CODE HERE ---
-        # Example: Simulating a heavy CPU task like OCR plate recognition or MongoDB lookups
-        print(f"[Processing Process] Analyzing frame shape: {frame.shape}")
-        time.sleep(0.1)  # Simulates a slow 100ms processing delay
-        # ------------------------------------
+        # Setup Table
+        self.table = QTableWidget(0, 3)
+        self.table.setHorizontalHeaderLabels(["Timestamp", "Plate Number", "Confidence"])
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-    print("Processing worker stopped.")
+        central_widget = QWidget()
+        layout = QVBoxLayout(central_widget)
+        layout.addWidget(self.table)
+        self.setCentralWidget(central_widget)
 
+        # Start Detector Thread
+        self.worker = DetectorWorker()
+        self.worker.plate_detected.connect(self.add_plate_record)
+        self.worker.start()
 
-# --- Main Process execution guard (CRITICAL for multiprocessing) ---
+    def add_plate_record(self, record: dict):
+        """Safely called on the main UI thread via signal."""
+        row = 0  # Insert at top so newest is always visible
+        self.table.insertRow(row)
+        
+        self.table.setItem(row, 0, QTableWidgetItem(record["timestamp"]))
+        self.table.setItem(row, 1, QTableWidgetItem(record["plate"]))
+        self.table.setItem(row, 2, QTableWidgetItem(f"{record['confidence'] * 100:.1f}%"))
+
+        # Optional: Cap max rows to prevent unbounded memory growth
+        if self.table.rowCount() > 500:
+            self.table.removeRow(self.table.rowCount() - 1)
+
+    def closeEvent(self, event):
+        self.worker.stop()
+        event.accept()
+
 if __name__ == "__main__":
-    video_source = "test.mp4" # Replace with your file or 0 for webcam
-
-    # 1. Create a Shared Queue (maxsize=2 stops it from bloating RAM)
-    # 2. Create a shared Boolean flag to coordinate clean shutdowns
-    ctx = multiprocessing.get_context("spawn") # Use 'spawn' for stability across OS platforms
-    mp_queue = ctx.Queue(maxsize=2)
-    shared_run_flag = ctx.Value('b', True) # 'b' represents a boolean/byte flag
-
-    # Set up the processing worker process
-    proc_process = ctx.Process(
-        target=process, 
-        daemon=True
-    )
-    proc_process.start()
-
-    # Run the video playback on the main desktop process
-    # (OpenCV GUI windows MUST run on the main process/thread on most OS platforms)
-    main()
-
-    # Wait for the processing process to terminate cleanly
-    proc_process.join()
-    print("All processes closed cleanly.")
+    app = QApplication(sys.argv)
+    window = PlateDashboard()
+    window.show()
+    sys.exit(app.exec())

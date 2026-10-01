@@ -23,7 +23,7 @@ QLabel#VideoLabel {
     border-radius: 6px;
     border: 1px solid #2b303b;
 }
-QLabel#PlateHud {
+QLabel#plateHud {
     background-color: #0f1218;
     border: 1px solid #2b303b;
     border-radius: 6px;
@@ -149,7 +149,7 @@ QFrame#RecordCard {
     border-radius: 10px;
 }
 QFrame#RecordCard[flagged="true"] { border: 1px solid #ff1744; }
-QLabel#CardRego {
+QLabel#Cardplate {
     font-size: 16px;
     font-weight: 800;
     color: #ffffff;

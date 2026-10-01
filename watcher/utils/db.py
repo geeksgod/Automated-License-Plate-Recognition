@@ -3,7 +3,7 @@ import certifi
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from config import CONFIG
-from watcher.models.plateinfo import PlateInfo
+from watcher.models.plateinfo import plateInfo
 import datetime 
 
 class MongoDBManager:
@@ -49,19 +49,41 @@ class MongoDBManager:
             MongoDBManager._client = None
             print("MongoDB connection closed.")
 
-    def add_to_watchlist(self, rego: str, reason: str):
+    def add_to_watchlist(self, plate: str, amount: str):
             record = {
-                "rego": rego.strip().upper(),
-                "reason": reason.strip() or "Unspecified",
+                "plate": plate.strip().upper(),
+                "amount": amount.strip() or "Unspecified",
                 "date_added": datetime.datetime.now().strftime("%Y-%m-%d"),
             }
             if self.connected:
                 try:
-                    self.get_collection(CONFIG.database.watch_list).insert_one(dict(record))
+                    self.get_collection(CONFIG.database.watch_list).update_one({ "plate": record["plate"] },{ "$set": record},upsert = True)
                     return True
                 except Exception:
                     self.connected = False
             return True
+
+    def delete_from_watchlist(self, plate):
+        plate_to_delete = plate.strip().upper()
+
+        if self.connected:
+            try:
+                result = self.get_collection(CONFIG.database.watch_list).delete_one(
+                    {"plate": plate_to_delete}
+                )
+                if result.deleted_count > 0:
+                    print(f"Successfully deleted plate: {plate_to_delete}")
+                    return True
+                else:
+                    print(f"plate {plate_to_delete} not found in the watchlist.")
+                    return False
+                    
+            except Exception as e:
+                print(f"MongoDB Delete Failed: {e}")
+                self.connected = False
+
+        return False
+
 
     def get_watchlist(self,collection):
                 if self.connected:
@@ -74,14 +96,17 @@ class MongoDBManager:
                         self.connected = False
     
     
-    def check_watchlist(self, rego: str):
-            rego = rego.strip().upper()
-            for entry in self.get_watchlist():
-                if entry.get("rego", "").upper() == rego:
-                    return entry
+    def check_watchlist(self, plate: str):
+       
+        if not plate:
             return None
 
-    def log_fueling(self, collection, info: PlateInfo ):
+        return self.get_collection(CONFIG.database.watch_list).find_one(
+            {"plate": plate},
+            {"_id": 0}  
+        )
+    
+    def log_fueling(self, collection, info: plateInfo ):
             if self.connected:
                 try:
                     self.get_collection(collection_name=collection).update_one({ "plate": info.plate },{ "$set": info.__dict__},upsert = True)

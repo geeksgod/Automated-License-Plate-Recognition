@@ -23,9 +23,9 @@ class FuelingRecordCard(QFrame):
         outer.setSpacing(8)
 
         top_row = QHBoxLayout()
-        rego_label = QLabel(record.get("plate", "—"))
-        rego_label.setObjectName("CardRego")
-        top_row.addWidget(rego_label)
+        plate_label = QLabel(record.get("plate", "—"))
+        plate_label.setObjectName("Cardplate")
+        top_row.addWidget(plate_label)
         top_row.addStretch()
 
         status = record.get("status", "Unknown")

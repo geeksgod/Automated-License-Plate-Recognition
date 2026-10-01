@@ -38,7 +38,7 @@ class FuelingLogPanel(QFrame):
         layout.addLayout(header_row)
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search by rego…")
+        self.search_input.setPlaceholderText("Search by plate…")
         self.search_input.textChanged.connect(self._apply_filter)
         layout.addWidget(self.search_input)
 
@@ -80,5 +80,5 @@ class FuelingLogPanel(QFrame):
     def _apply_filter(self, text):
         query = text.strip().upper()
         for card in self._cards:
-            rego = card.record.get("plate", "").upper()
-            card.setVisible((query in rego) if query else True)
+            plate = card.record.get("plate", "").upper()
+            card.setVisible((query in plate) if query else True)

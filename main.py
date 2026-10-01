@@ -30,7 +30,7 @@ Design notes:
       watchlist) and a "Report to Police" button that opens a confirmation
       dialog showing the vehicle details + a footage snapshot. Confirming
       simulates a submission to NSW Police (no real network call is made).
-    - Both the Watchlist and Fueling Records sections have a rego search box.
+    - Both the Watchlist and Fueling Records sections have a plate search box.
 """
 
 import sys
@@ -94,7 +94,7 @@ QLabel#VideoLabel {
     border-radius: 6px;
     border: 1px solid #2b303b;
 }
-QLabel#PlateHud {
+QLabel#plateHud {
     background-color: #0f1218;
     border: 1px solid #2b303b;
     border-radius: 6px;
@@ -220,7 +220,7 @@ QFrame#RecordCard {
     border-radius: 10px;
 }
 QFrame#RecordCard[flagged="true"] { border: 1px solid #ff1744; }
-QLabel#CardRego {
+QLabel#Cardplate {
     font-size: 16px;
     font-weight: 800;
     color: #ffffff;
@@ -322,8 +322,8 @@ class VideoPanel(QFrame):
         layout.addWidget(self.video_label, stretch=1)
 
         hud_row = QHBoxLayout()
-        self.plate_hud = QLabel("Detected Rego: -- | Confidence: --")
-        self.plate_hud.setObjectName("PlateHud")
+        self.plate_hud = QLabel("Detected plate: -- | Confidence: --")
+        self.plate_hud.setObjectName("plateHud")
         hud_row.addWidget(self.plate_hud)
         hud_row.addStretch()
         layout.addLayout(hud_row)
@@ -349,8 +349,8 @@ class VideoPanel(QFrame):
         dialog). May be None if no frame has been rendered yet."""
         return self._last_pixmap
 
-    def set_plate_hud(self, rego: str, confidence):
-        self.plate_hud.setText(f"Detected Rego: {rego} | Confidence: {confidence}%")
+    def set_plate_hud(self, plate: str, confidence):
+        self.plate_hud.setText(f"Detected plate: {plate} | Confidence: {confidence}%")
 
     def set_alert(self, active: bool):
         if active:
@@ -429,26 +429,26 @@ class WatchlistPanel(QFrame):
         layout.addWidget(title)
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search regos on the watchlist…")
+        self.search_input.setPlaceholderText("Search plates on the watchlist…")
         self.search_input.textChanged.connect(self._apply_filter)
         layout.addWidget(self.search_input)
 
         self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["Rego Number", "Reason", "Date Added"])
+        self.table.setHorizontalHeaderLabels(["plate Number", "Reason", "Date Added"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         layout.addWidget(self.table, stretch=1)
 
         form_row = QHBoxLayout()
-        self.rego_input = QLineEdit()
-        self.rego_input.setPlaceholderText("Rego e.g. ABC-123")
+        self.plate_input = QLineEdit()
+        self.plate_input.setPlaceholderText("plate e.g. ABC-123")
         self.reason_input = QLineEdit()
         self.reason_input.setPlaceholderText("Reason e.g. Prior Drive-Off")
         add_btn = QPushButton("Add to Watchlist")
         add_btn.setObjectName("AddButton")
         add_btn.clicked.connect(self._add_entry)
-        form_row.addWidget(self.rego_input)
+        form_row.addWidget(self.plate_input)
         form_row.addWidget(self.reason_input)
         form_row.addWidget(add_btn)
         layout.addLayout(form_row)
@@ -460,13 +460,13 @@ class WatchlistPanel(QFrame):
         self.refresh()
 
     def _add_entry(self):
-        rego = self.rego_input.text().strip()
+        plate = self.plate_input.text().strip()
         reason = self.reason_input.text().strip()
-        if not rego:
-            QMessageBox.warning(self, "Missing Rego", "Please enter a rego number before adding.")
+        if not plate:
+            QMessageBox.warning(self, "Missing plate", "Please enter a plate number before adding.")
             return
-        self.mongo.add_to_watchlist(rego, reason)
-        self.rego_input.clear()
+        self.mongo.add_to_watchlist(plate, reason)
+        self.plate_input.clear()
         self.reason_input.clear()
         self.refresh()
 
@@ -476,7 +476,7 @@ class WatchlistPanel(QFrame):
         for row, rec in enumerate(records):
             date_added = rec.get("date_added", "")
             date_str = date_added.strftime("%Y-%m-%d %H:%M") if hasattr(date_added, "strftime") else str(date_added)
-            self.table.setItem(row, 0, QTableWidgetItem(rec.get("rego", "")))
+            self.table.setItem(row, 0, QTableWidgetItem(rec.get("plate", "")))
             self.table.setItem(row, 1, QTableWidgetItem(rec.get("reason", "")))
             self.table.setItem(row, 2, QTableWidgetItem(date_str))
         state = "MongoDB: Connected" if getattr(self.mongo, "connected", False) else "MongoDB: Offline (using mock data)"
@@ -487,8 +487,8 @@ class WatchlistPanel(QFrame):
         query = text.strip().upper()
         for row in range(self.table.rowCount()):
             item = self.table.item(row, 0)
-            rego = item.text().upper() if item else ""
-            self.table.setRowHidden(row, bool(query) and query not in rego)
+            plate = item.text().upper() if item else ""
+            self.table.setRowHidden(row, bool(query) and query not in plate)
 
 
 # ---------------------------------------------------------------------------
@@ -545,7 +545,7 @@ class ReportPoliceDialog(QDialog):
         form.setSpacing(6)
         ts = record.get("timestamp")
         ts_str = ts.strftime("%Y-%m-%d %H:%M:%S") if hasattr(ts, "strftime") else str(ts)
-        form.addRow("Plate Rego:", QLabel(record.get("plate", "—")))
+        form.addRow("plate plate:", QLabel(record.get("plate", "—")))
         form.addRow("Pump:", QLabel(str(record.get("pump", PUMP_ID))))
         form.addRow("Litres Dispensed:", QLabel(str(record.get("litres", "—"))))
         form.addRow("Status:", QLabel(record.get("status", "—")))
@@ -609,9 +609,9 @@ class FuelingRecordCard(QFrame):
         outer.setSpacing(8)
 
         top_row = QHBoxLayout()
-        rego_label = QLabel(record.get("plate", "—"))
-        rego_label.setObjectName("CardRego")
-        top_row.addWidget(rego_label)
+        plate_label = QLabel(record.get("plate", "—"))
+        plate_label.setObjectName("Cardplate")
+        top_row.addWidget(plate_label)
         top_row.addStretch()
 
         status = record.get("status", "Unknown")
@@ -679,7 +679,7 @@ class FuelingLogPanel(QFrame):
         layout.addLayout(header_row)
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search by rego…")
+        self.search_input.setPlaceholderText("Search by plate…")
         self.search_input.textChanged.connect(self._apply_filter)
         layout.addWidget(self.search_input)
 
@@ -721,8 +721,8 @@ class FuelingLogPanel(QFrame):
     def _apply_filter(self, text):
         query = text.strip().upper()
         for card in self._cards:
-            rego = card.record.get("plate", "").upper()
-            card.setVisible((query in rego) if query else True)
+            plate = card.record.get("plate", "").upper()
+            card.setVisible((query in plate) if query else True)
 
 
 
@@ -820,11 +820,11 @@ class MainWindow(QMainWindow):
    
 
     # ---- Detection / simulation pipeline ----
-    def _simulate_plate(self, rego: str):
+    def _simulate_plate(self, plate: str):
         confidence = random.randint(88, 99)
-        self.video_panel.set_plate_hud(rego, confidence)
+        self.video_panel.set_plate_hud(plate, confidence)
 
-        watch_entry = self.mongo.check_watchlist(rego)
+        watch_entry = self.mongo.check_watchlist(plate)
         if watch_entry:
             self._trigger_alert()
             status = "Blocked"
@@ -833,7 +833,7 @@ class MainWindow(QMainWindow):
             status = "Authorized"
 
         litres = round(random.uniform(15, 60), 2)
-        self.mongo.log_fueling(rego, PUMP_ID, litres, status)
+        self.mongo.log_fueling(plate, PUMP_ID, litres, status)
         self.fueling_panel.refresh()
 
     def _trigger_alert(self):
@@ -847,22 +847,22 @@ class MainWindow(QMainWindow):
 
     # ---- Card actions: watchlist / police report ----
     def _on_add_to_watchlist(self, record: dict):
-        rego = record.get("plate", "").strip()
-        if not rego:
+        plate = record.get("plate", "").strip()
+        if not plate:
             return
         default_text = f"Auto-added from fueling log ({record.get('status', 'Unknown')})"
         reason, ok = QInputDialog.getText(
             self, 
             "Add to Watchlist", 
-            f"Enter reason for {rego}:", 
+            f"Enter reason for {plate}:", 
             text=default_text
         )
         if ok:
             if not reason.strip():
                 reason = "No reason provided"
-            self.mongo.add_to_watchlist(rego, reason)
+            self.mongo.add_to_watchlist(plate, reason)
             self.watchlist_panel.refresh()
-            QMessageBox.information(self, "Added to Watchlist", f"{rego} has been added to the watchlist.")
+            QMessageBox.information(self, "Added to Watchlist", f"{plate} has been added to the watchlist.")
 
     def _on_report_police(self, record: dict):
         footage = self.video_panel.get_current_pixmap()
