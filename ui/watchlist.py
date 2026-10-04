@@ -1,9 +1,7 @@
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QGridLayout, QFormLayout, QTableWidget, QTableWidgetItem,
-    QLineEdit, QHeaderView, QFrame, QMessageBox, QAbstractItemView,
-    QScrollArea, QListWidget, QListWidgetItem, QStackedWidget, QDialog,
-    QDialogButtonBox,QInputDialog
+    QLabel, QPushButton, QVBoxLayout,
+    QHBoxLayout, QTableWidget, QTableWidgetItem,
+    QLineEdit, QHeaderView, QFrame, QMessageBox, QAbstractItemView
 )
 from watcher.utils.db import MongoDBManager
 from config import CONFIG

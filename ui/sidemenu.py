@@ -1,9 +1,5 @@
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QGridLayout, QFormLayout, QTableWidget, QTableWidgetItem,
-    QLineEdit, QHeaderView, QFrame, QMessageBox, QAbstractItemView,
-    QScrollArea, QListWidget, QListWidgetItem, QStackedWidget, QDialog,
-    QDialogButtonBox,QInputDialog
+    QListWidget, QListWidgetItem
 )
 
 class SidebarMenu(QListWidget):

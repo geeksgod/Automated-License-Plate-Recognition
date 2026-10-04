@@ -1,16 +1,12 @@
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QGridLayout, QFormLayout, QTableWidget, QTableWidgetItem,
-    QLineEdit, QHeaderView, QFrame, QMessageBox, QAbstractItemView,
-    QScrollArea, QListWidget, QListWidgetItem, QStackedWidget, QDialog,
-    QDialogButtonBox,QInputDialog,QSizePolicy,QApplication
+    QWidget, QLabel, QPushButton, QVBoxLayout,
+    QHBoxLayout, QFrame, QScrollArea, QSizePolicy
 )
 from PyQt6.QtGui import QPixmap,QFont
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QUrl
 from PyQt6.QtMultimedia import QSoundEffect
-from config import CONFIG
 
 import os
 class PumpControlPanel(QFrame):

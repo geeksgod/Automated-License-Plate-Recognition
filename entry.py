@@ -1,9 +1,6 @@
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QGridLayout, QFormLayout, QTableWidget, QTableWidgetItem,
-    QLineEdit, QHeaderView, QFrame, QMessageBox, QAbstractItemView,
-    QScrollArea, QListWidget, QListWidgetItem, QStackedWidget, QDialog,
-    QDialogButtonBox,QInputDialog
+    QApplication, QMainWindow, QWidget, QVBoxLayout,
+    QHBoxLayout, QMessageBox, QStackedWidget, QInputDialog
 )
 import sys
 from watcher.utils.db import MongoDBManager
@@ -75,14 +72,7 @@ class MainWindow(QMainWindow):
         v.addStretch(1)
         return wrap
 
-    def _trigger_alert(self):
-        self.pump_panel.set_status(ok=False)
-
-    def _clear_alert(self):
-        self.pump_panel.set_status(ok=True)
-
-    def _on_manual_reset(self):
-        self._clear_alert()
+    
 
     def _on_add_to_watchlist(self, record: dict):
         plate = record.get("plate", "").strip()

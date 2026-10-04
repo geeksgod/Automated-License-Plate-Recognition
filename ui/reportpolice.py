@@ -1,16 +1,12 @@
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QGridLayout, QFormLayout, QTableWidget, QTableWidgetItem,
-    QLineEdit, QHeaderView, QFrame, QMessageBox, QAbstractItemView,
-    QScrollArea, QListWidget, QListWidgetItem, QStackedWidget, QDialog,
-    QDialogButtonBox,QInputDialog
+    QLabel, QPushButton, QVBoxLayout,
+    QFormLayout, QDialog,
+    QDialogButtonBox
 )
 
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from ui.uicomponent.fuelcard import FuelingRecordCard
-from PyQt6.QtGui import QImage, QPixmap, QColor
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPixmap
 import random, string
-from config import CONFIG
 
 class ReportPoliceDialog(QDialog):
     

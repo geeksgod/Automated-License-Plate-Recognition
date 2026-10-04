@@ -1,12 +1,9 @@
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QGridLayout, QFormLayout, QTableWidget, QTableWidgetItem,
-    QLineEdit, QHeaderView, QFrame, QMessageBox, QAbstractItemView,
-    QScrollArea, QListWidget, QListWidgetItem, QStackedWidget, QDialog,
-    QDialogButtonBox,QInputDialog
+    QWidget, QLabel, QPushButton, QVBoxLayout,
+    QHBoxLayout, QLineEdit, QFrame, QScrollArea
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from watcher.utils.db import MongoDBManager
 from ui.uicomponent.fuelcard import FuelingRecordCard
 

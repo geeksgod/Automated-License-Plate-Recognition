@@ -1,8 +1,6 @@
 import cv2
-import time
 from pathlib import Path
 from collections import deque, Counter
-from config import CONFIG
 from watcher.inference.alpr import ALPRENGINE
 from watcher.models.plateinfo import plateInfo
 from watcher.utils.platequeue import plateQueue
