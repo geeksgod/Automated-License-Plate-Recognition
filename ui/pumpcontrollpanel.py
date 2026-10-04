@@ -1,19 +1,22 @@
+from pathlib import Path
+
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QPushButton, QVBoxLayout,
     QHBoxLayout, QGridLayout, QFormLayout, QTableWidget, QTableWidgetItem,
     QLineEdit, QHeaderView, QFrame, QMessageBox, QAbstractItemView,
     QScrollArea, QListWidget, QListWidgetItem, QStackedWidget, QDialog,
-    QDialogButtonBox,QInputDialog,QSizePolicy
+    QDialogButtonBox,QInputDialog,QSizePolicy,QApplication
 )
 from PyQt6.QtGui import QPixmap,QFont
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from ui.uicomponent.fuelcard import FuelingRecordCard
-
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QUrl
+from PyQt6.QtMultimedia import QSoundEffect
 from config import CONFIG
 
 import os
 class PumpControlPanel(QFrame):
-    reset_requested = pyqtSignal()
+    is_resolved = pyqtSignal()
+    alert_triggered = pyqtSignal(dict)
+    seen_alert_plates = set()  
 
     def __init__(self, mongo, pump_id: str = "Pump 1", parent=None):
 
@@ -21,7 +24,12 @@ class PumpControlPanel(QFrame):
         self.mongo = mongo
         self.setObjectName("Card")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setMinimumHeight(450)
+        self.setMinimumHeight(600)
+
+        self.alert_sound = QSoundEffect(self)
+        self.alert_sound.setSource(QUrl.fromLocalFile(str(Path("audio/alert.wav").resolve())))
+        self.alert_sound.setLoopCount(QSoundEffect.Loop.Infinite.value)  # Continuous loop
+        self.alert_sound.setVolume(0.8)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -41,9 +49,26 @@ class PumpControlPanel(QFrame):
         self.cards_layout.setSpacing(8)
         self.cards_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+
         # 3. Mount container into scroll area, then add to your parent layout
         self.scroll_area.setWidget(self.cards_container)
         layout.addWidget(self.scroll_area, 1)
+
+        self.alert_scroll_area = QScrollArea()
+        self.alert_scroll_area.setWidgetResizable(True)
+        self.alert_scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.alert_scroll_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+
+        self.alert_container = QWidget()
+        self.alert_layout = QVBoxLayout(self.alert_container)
+        self.alert_layout.setContentsMargins(8, 8, 8, 8)
+        self.alert_layout.setSpacing(8)
+        self.alert_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        self.alert_scroll_area.setWidget(self.alert_container)
+        layout.addWidget(self.alert_scroll_area, 1)
 
         
 
@@ -77,14 +102,7 @@ class PumpControlPanel(QFrame):
         if len(records) > 500:
             records = records[:500]
 
-        # plate_strings = [getattr(r, "plate", "") for r in records]
-        # watchlist_hits = self.mongo.check_watchlist(plate_strings)
-        # if watchlist_hits:
-        #     print(watchlist_hits)
-        # else:
-        #     print("not hit")    
-
-        # 2. Clean out old widgets cleanly
+        
         while self.cards_layout.count():
             item = self.cards_layout.takeAt(0)
             widget = item.widget()
@@ -92,26 +110,98 @@ class PumpControlPanel(QFrame):
                 widget.setParent(None)
                 widget.deleteLater()
 
-        # 3. Add new cards with container as parent
         for rec in records:
             card = PlateCard(rec, parent=self.cards_container)
             self.cards_layout.addWidget(card)
             card.show()
 
-        # 4. Force container and scroll area geometry refresh
         self.cards_container.adjustSize()
         self.cards_layout.update() 
 
-    def show_alert(self, message: str):
-        """Displays the alert section with a custom warning message."""
-        self.alert_label.setText(message)
-        self.alert_widget.setVisible(True)
-
-    def hide_alert(self):
-        """Hides the alert section when everything is normal."""
-        self.alert_widget.setVisible(False)   
-
     
+    def add_alert(self, alert_data: dict):
+        plate = alert_data.get("plate", "").strip().upper()
+        if not plate:
+            return
+
+        # Deduplication check
+        if plate in self.seen_alert_plates:
+            return
+        
+        if self.alert_sound.isLoaded():
+            self.alert_sound.play()
+            # Stop sound automatically after 3000 ms (3 seconds)
+            QTimer.singleShot(50000, self.alert_sound.stop)
+        self.seen_alert_plates.add(plate)
+
+        alert_card = QFrame()
+        alert_card.setStyleSheet("""
+            QFrame {
+                background-color: #3b1111;
+                border: 1px solid #ff4444;
+                border-radius: 6px;
+                padding: 4px;
+            }
+        """)
+
+        card_layout = QVBoxLayout(alert_card)
+        card_layout.setContentsMargins(8, 8, 8, 8)
+        card_layout.setSpacing(4)
+
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
+
+        plate_label = QLabel(f"<b>PLATE:</b> {plate}")
+        plate_label.setStyleSheet("color: #ffffff; font-size: 14px; border: none;")
+
+        btn_delete = QPushButton("Resolved")
+        btn_delete.setFixedSize(100, 100)
+        btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_delete.setToolTip("Dismiss alert")
+        btn_delete.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #ff9999;
+                font-weight: bold;
+                border: 1px solid #772222;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #ff4444;
+                color: #ffffff;
+            }
+        """)
+        btn_snooze = QPushButton("Snooze")
+        btn_snooze.setFixedSize(100, 100)
+
+        btn_delete.clicked.connect(lambda: self.dismiss_alert(plate, alert_card))
+        btn_snooze.clicked.connect(lambda: self.snooze_alert(plate, alert_card))
+
+        header_row.addWidget(plate_label)
+        header_row.addStretch()
+        header_row.addWidget(btn_delete)
+        header_row.addWidget(btn_snooze)
+        reason = alert_data.get("data", {}).get("reason", "Watchlist Match")
+        reason_label = QLabel(f"<b>Reason:</b> {reason}")
+        reason_label.setStyleSheet("color: #ff9999; font-size: 12px; border: none;")
+
+        card_layout.addLayout(header_row)
+        card_layout.addWidget(reason_label)
+
+        self.alert_layout.insertWidget(0, alert_card)
+
+    def dismiss_alert(self, plate: str, card_widget: QFrame):
+        """Removes the alert widget and frees up the plate for re-detection."""
+        self.seen_alert_plates.discard(plate)
+        self.alert_sound.stop()
+        _ = self.mongo.delete_from_watchlist(plate)
+        self.alert_layout.removeWidget(card_widget)
+        self.is_resolved.emit()
+        card_widget.deleteLater()
+
+    def snooze_alert(self, plate: str, card_widget: QFrame):       
+        self.alert_sound.stop()
+
 class PlateCard(QFrame):
     """Card widget representing a single plateInfo item."""
 

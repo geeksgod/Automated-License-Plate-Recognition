@@ -18,7 +18,7 @@ from process import BowserWatchWorker
 class MainWindow(QMainWindow):
     def __init__(self):
             super().__init__()
-            self.setWindowTitle("Forecourt Security Dashboard — Drive-Off Prevention")
+            self.setWindowTitle("Bowser Watch — Drive-Off Prevention")
             self.resize(1440, 900)
             with open("ui/style.qss", "r") as f:
                 self.setStyleSheet(f.read())
@@ -33,9 +33,11 @@ class MainWindow(QMainWindow):
 
             self.fuelingrecord.report_police_requested.connect(self._on_report_police)
             self.fuelingrecord.add_to_watchlist_requested.connect(self._on_add_to_watchlist)
+            self.pump_panel.is_resolved.connect(self.watch_list.refresh)
 
-            self.worker = BowserWatchWorker()
+            self.worker = BowserWatchWorker(mongo=self.mongo)
             self.worker.plate_detected.connect(self.pump_panel.refresh_queue)
+            self.worker.alert_triggered.connect(self.pump_panel.add_alert)
             self.worker.start()
 
             self._build_layout()
@@ -65,8 +67,7 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _wrap_top(widget):
-        """Wraps a compact panel in a container that pins it to the top of
-        the stacked page instead of stretching it to fill the whole area."""
+       
         wrap = QWidget()
         v = QVBoxLayout(wrap)
         v.setContentsMargins(0, 0, 0, 0)

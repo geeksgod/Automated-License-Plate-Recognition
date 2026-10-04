@@ -96,8 +96,7 @@ class MongoDBManager:
                         self.connected = False
     
     
-    def check_watchlist(self, plate: str):
-       
+    def check_watchlist(self, plate: str):       
         if not plate:
             return None
 
