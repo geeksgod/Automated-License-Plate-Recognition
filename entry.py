@@ -15,13 +15,11 @@ from process import BowserWatchWorker
 class MainWindow(QMainWindow):
     def __init__(self):
             super().__init__()
-            self.setWindowTitle("Bowser Watch — Drive-Off Prevention")
+            self.setWindowTitle("BowserWatch — Drive-Off Prevention")
             self.resize(1440, 900)
             with open("ui/style.qss", "r") as f:
                 self.setStyleSheet(f.read())
             self.mongo = MongoDBManager()
-
-
 
             self.pump_panel = PumpControlPanel(mongo= self.mongo)
             self.sidebar = SidebarMenu()
@@ -36,7 +34,6 @@ class MainWindow(QMainWindow):
             self.worker.plate_detected.connect(self.pump_panel.refresh_queue)
             self.worker.alert_triggered.connect(self.pump_panel.add_alert)
             self.worker.start()
-
             self._build_layout()
            
            
@@ -104,8 +101,8 @@ class MainWindow(QMainWindow):
     
 
 
-
-app = QApplication(sys.argv)
-window = MainWindow()
-window.show()
-sys.exit(app.exec())
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
