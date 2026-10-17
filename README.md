@@ -114,6 +114,14 @@ xvfb-run -a python entry.py
 - `watcher/models/` and `watcher/utils/platequeue.py` hold detection data and recent plate events.
 - `config.py` and `config.toml` supply runtime settings; sample videos and the alert audio are stored in `watcher/data/` and `audio/`.
 
+## Originality and External Contributions
+
+This project is the authors’ original work, developed for the described fuel-station monitoring and drive-off prevention use case. Where third-party components, libraries, or source code were used, they are acknowledged and used in accordance with their respective licenses and terms.
+
+GitHub Copilot inline recommendations and Gemini were used as an assistive development tool during code preparation, but the final implementation, design decisions, and validation were carried out by the authors. Any external assets, code snippets, templates, or support used during development have been credited appropriately and are not represented as the authors’ own original work unless explicitly noted.
+
+The application depends on open-source libraries including PyQt6, pymongo, certifi, OpenCV, and fast-alpr.
+
 ## License
 [MIT License](LICENSE)
 
