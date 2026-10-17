@@ -1,322 +1,119 @@
-# Bowser Watch — Drive-Off Prevention
+# Bowser Watch
 
-Bowser Watch is a desktop application built with Python and PyQt6 for monitoring fueling stations, detecting suspicious vehicles, managing a watchlist, and supporting drive-off prevention workflows. The app connects a database layer, a GUI dashboard, and a background worker that processes license plate events and alert conditions.
+Bowser Watch is a Python desktop application for fuel-station monitoring and drive-off prevention. It combines a PyQt6 interface, license-plate detection and OCR, a background video-processing worker, and MongoDB-backed watchlist and fueling records.
 
-This project is designed to help fuel stations identify vehicles with suspicious activity, track fueling transactions, and report incidents to authorities when needed.
+### Acrhitecture
+<div align="center">
+  <img src="Picture.png" alt="Arch" width="450"/>
+ </div>
 
-## Overview
+## Source Code
 
-The application includes:
-
-- A pump control panel
-- A sidebar menu for navigation
-- A watchlist for suspicious plates
-- Fueling log tracking
-- Police report generation
-- A background worker for monitoring and alerting
-- MongoDB storage for persistent data
-
-## Features
-
-- Real-time pump monitoring dashboard
-- License plate detection and processing workflow
-- Alert generation for suspicious vehicle activity
-- Watchlist management
-- Fueling log review
-- Police report support
-- MongoDB-backed persistence
-- PyQt6-based desktop UI
-
-## Project Structure
+The application source is included in this repository. The active application is the root-level `entry.py` and the modules alongside it. `bowser-watch/` is a separate, older copy with its own UI and worker; its requirements file is not the dependency manifest for the root application.
 
 ```text
 CV2/
-├── entry.py
-├── process/
-│   ├── __init__.py
-│   └── bowser_watch_worker.py
+├── entry.py                         # Application entry point and main window
+├── config.py                        # Loads application and database settings
+├── config.toml                      # Local app, model, and database configuration
+├── process.py                       # Background ALPR/video-processing worker
 ├── ui/
-│   ├── __init__.py
-│   ├── style.qss
-│   ├── pumpcontrollpanel.py
-│   ├── sidemenu.py
-│   ├── watchlist.py
-│   ├── fuelingrecord.py
-│   └── reportpolice.py
+│   ├── pumpcontrollpanel.py          # Pump status and alert dashboard
+│   ├── sidemenu.py                   # Navigation sidebar
+│   ├── watchlist.py                  # Watchlist view
+│   ├── fuelingrecord.py              # Fueling records and actions
+│   ├── reportpolice.py               # Incident report dialog
+│   ├── videoplayer.py                # Video playback UI
+│   ├── style.qss                     # Qt stylesheet
+│   └── uicomponent/fuelcard.py       # Fuel card UI component
 ├── watcher/
-│   ├── __init__.py
-│   └── utils/
-│       ├── __init__.py
-│       └── db.py
-├── requirements.txt
-├── README.md
-├── .gitignore
-└── ...
+│   ├── inference/alpr.py             # ALPR model setup and plate normalization
+│   ├── models/plateinfo.py           # Plate detection data model
+│   ├── utils/db.py                   # MongoDB operations
+│   ├── utils/platequeue.py           # Recent detection queue
+│   ├── data/                         # Sample input videos
+│   └── output/                       # Saved detection images
+├── audio/alert.wav                   # Alert sound asset
+└── bowser-watch/                     # Older, separate project copy
 ```
 
-## Prerequisites
+## Requirements
 
-Before running the project, ensure the following are installed:
+### Software
 
-- Python 3.10+
-- pip
-- MongoDB
-- A desktop environment that supports PyQt6
-- Git (optional)
+- Python 3.11 or newer (`config.py` uses the standard-library `tomllib` module)
+- pip and a virtual environment
+- MongoDB deployment accessible from the machine (local or Atlas)
+- A graphical desktop session for PyQt6
+- Network access for MongoDB and, where needed, first-time ALPR model downloads
 
-### Required Python Packages
+### Python packages
 
-The app depends on:
-
-- PyQt6
-- pymongo
-- OpenCV (if used by the processing layer)
-- Standard Python libraries
-
-Install dependencies using:
+The root application imports `PyQt6`, `pymongo`, `certifi`, `cv2` (provided by `opencv-python`), and `fast-alpr`. Install them into the active Python environment:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install PyQt6 pymongo certifi opencv-python fast-alpr
 ```
 
-If the requirements file is missing or incomplete, install the main packages manually:
-
-```bash
-pip install PyQt6 pymongo
-```
-
-If OpenCV is needed:
-
-```bash
-pip install opencv-python
-```
+There is currently no root-level `requirements.txt`; `bowser-watch/requirements.txt` belongs to the older nested copy and does not list every package required by the root application.
 
 ## Installation
 
-1. Open a terminal.
-2. Navigate to the project folder:
+From the repository root, create and activate a virtual environment.
 
-```bash
-cd /toprojectfolder 
-```
-
-3. Create a virtual environment:
+Linux/macOS:
 
 ```bash
 python3 -m venv .venv
-```
-
-4. Activate the environment:
-
-On Linux/macOS:
-
-```bash
 source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install PyQt6 pymongo certifi opencv-python fast-alpr
 ```
 
-5. Install dependencies:
+Windows PowerShell:
 
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install PyQt6 pymongo certifi opencv-python fast-alpr
 ```
 
 ## Configuration
 
-### MongoDB
+The application loads `config.toml` from the current working directory. It contains the app name/debug setting, ALPR detector and OCR model names, detector confidence, and MongoDB database and collection names. Keep this file present when running the app.
 
-The application uses `MongoDBManager` from `watcher/utils/db.py` for database access. Make sure MongoDB is running and the connection URI is valid.
+Set `MONGO_URI` and `MONGO_DB_NAME` in the environment to override the MongoDB connection string and database name. Configure a MongoDB user with access to the selected database and ensure network access is allowed by the MongoDB server or Atlas network rules. Do not commit credentials or share a configuration file containing secrets. The connection is validated when the application starts.
 
-Typical setup:
+The worker reads `watcher/data/test1.mp4`, saves qualifying plate images under `watcher/output/`, and loads the UI stylesheet from `ui/style.qss`. Launch from the repository root so these relative paths resolve.
 
-1. Start MongoDB:
-```bash
-mongod
-```
+## Build and Run
 
-2. Verify the database connection settings in:
-```python
-watcher/utils/db.py
-```
-
-Update the URI if MongoDB is not using the default localhost configuration.
-
-### UI Stylesheet
-
-The app loads the stylesheet file:
-
-```python
-ui/style.qss
-```
-
-This is loaded relative to the project root, so the app should be launched from the project directory.
-
-## Execution Steps
-
-Follow these steps to run the application:
-
-1. Change to the project directory:
-
-```bash
-cd /home/bipin/Downloads/CV2
-```
-
-2. Activate the virtual environment:
-
-```bash
-source .venv/bin/activate
-```
-
-3. Ensure MongoDB is running.
-
-4. Start the app:
+There is no separate compile or packaging step currently defined; run the Python source directly. With the virtual environment active and MongoDB configured, execute from the repository root:
 
 ```bash
 python entry.py
 ```
 
-or
+The main window opens with pump monitoring, watchlist, and fueling-record views. The worker processes the sample video in the background and sends detection and watchlist-alert updates to the interface. Close the window normally to close the MongoDB connection.
+
+For a headless Linux session, a display server or virtual display is needed by Qt. For example, where Xvfb is installed:
 
 ```bash
-python3 entry.py
+xvfb-run -a python entry.py
 ```
 
-5. The main PyQt window should open.
+## Architecture
 
-## How the App Works
+- `entry.py` constructs the main window, connects UI signals, creates the MongoDB manager, and starts the worker thread.
+- `ui/` contains the dashboard, navigation, watchlist, fueling records, report dialog, playback component, and stylesheet.
+- `process.py` runs as a Qt worker thread. It samples video frames, calls the ALPR engine, selects a plate detection, stores an image when appropriate, checks the watchlist, and emits UI signals.
+- `watcher/inference/alpr.py` configures `fast-alpr` from the model settings and normalizes recognized plate text.
+- `watcher/utils/db.py` provides MongoDB access for watchlist and fueling data.
+- `watcher/models/` and `watcher/utils/platequeue.py` hold detection data and recent plate events.
+- `config.py` and `config.toml` supply runtime settings; sample videos and the alert audio are stored in `watcher/data/` and `audio/`.
 
-The entry point is `entry.py`.
+## License
 
-### Main Window
-
-In `MainWindow.__init__`, the app creates the following components:
-
-- `PumpControlPanel`
-- `SidebarMenu`
-- `WatchlistPanel`
-- `FuelingLogPanel`
-- `BowserWatchWorker`
-
-Then it connects UI elements and worker signals:
-
-```python
-self.fuelingrecord.report_police_requested.connect(self._on_report_police)
-self.fuelingrecord.add_to_watchlist_requested.connect(self._on_add_to_watchlist)
-self.pump_panel.is_resolved.connect(self.watch_list.refresh)
-
-self.worker = BowserWatchWorker(mongo=self.mongo)
-self.worker.plate_detected.connect(self.pump_panel.refresh_queue)
-self.worker.alert_triggered.connect(self.pump_panel.add_alert)
-self.worker.start()
-```
-
-This allows the backend worker to send live updates to the UI.
-
-### Watchlist
-
-If a fueling record is marked as suspicious, the app may ask the user to add the vehicle plate to the watchlist:
-
-```python
-self.mongo.add_to_watchlist(plate, amount)
-```
-
-This is handled in:
-
-```python
-_on_add_to_watchlist()
-```
-
-### Reporting
-
-When the user requests a police report, the app opens a dialog:
-
-```python
-dialog = ReportPoliceDialog(record, parent=self)
-dialog.exec()
-```
-
-### Shutdown
-
-When the app closes, the database connection is cleaned up:
-
-```python
-def closeEvent(self, event):
-    self.mongo.close()
-    super().closeEvent(event)
-```
-
-## Typical Usage Flow
-
-1. Launch the application.
-2. Monitor active pump panels.
-3. Review suspicious plate alerts generated by the worker.
-4. Add flagged vehicles to the watchlist.
-5. Check fueling logs.
-6. Submit police reports when required.
-7. Resolve suspicious alerts through the interface.
-
-## Troubleshooting
-
-### 1. Application does not start
-
-Verify the dependencies are installed:
-
-```bash
-pip install -r requirements.txt
-```
-
-Also ensure you are launching from the project root.
-
-### 2. Module not found errors
-
-Make sure the virtual environment is active:
-
-```bash
-source .venv/bin/activate
-```
-
-Then run:
-
-```bash
-python entry.py
-```
-
-### 3. MongoDB connection errors
-
-Check whether MongoDB is running:
-
-```bash
-mongod
-```
-
-Then verify the connection URI in:
-
-```python
-watcher/utils/db.py
-```
-
-### 4. Style file not loading
-
-The app loads:
-
-```python
-ui/style.qss
-```
-
-Make sure the file exists and the working directory is the project root.
-
-### 5. PyQt6 errors
-
-Install the GUI dependency:
-
-```bash
-pip install PyQt6
-```
-
-## Notes
-
-- The app uses a relative stylesheet path: `ui/style.qss`
-- Running the app from another directory may break relative resource loading
-- This is a GUI desktop application and needs a display-capable environment
-- If running in a headless or remote environment, PyQt6 may require X11/Wayland support
-
+No `LICENSE` file is currently included, so this repository's license has not been specified. Do not assume the project is MIT-licensed or that reuse and redistribution are permitted. Add a `LICENSE` file with the chosen license before distributing the project or granting reuse rights.
