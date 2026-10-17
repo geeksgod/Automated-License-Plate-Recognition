@@ -115,5 +115,5 @@ xvfb-run -a python entry.py
 - `config.py` and `config.toml` supply runtime settings; sample videos and the alert audio are stored in `watcher/data/` and `audio/`.
 
 ## License
+[MIT License](LICENSE)
 
-No `LICENSE` file is currently included, so this repository's license has not been specified. Do not assume the project is MIT-licensed or that reuse and redistribution are permitted. Add a `LICENSE` file with the chosen license before distributing the project or granting reuse rights.
