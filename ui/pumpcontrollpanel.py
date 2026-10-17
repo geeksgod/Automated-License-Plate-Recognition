@@ -20,7 +20,7 @@ class PumpControlPanel(QFrame):
         self.mongo = mongo
         self.setObjectName("Card")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setMinimumHeight(1000)
+        self.setMinimumHeight(600)
 
         self.alert_sound = QSoundEffect(self)
         self.alert_sound.setSource(QUrl.fromLocalFile(str(Path("audio/alert.wav").resolve())))
@@ -189,8 +189,8 @@ class PumpControlPanel(QFrame):
     def dismiss_alert(self, plate: str, card_widget: QFrame):
         """Removes the alert widget and frees up the plate for re-detection."""
         self.seen_alert_plates.discard(plate)
-        _ = self.mongo.delete_from_watchlist(plate)
         self.alert_sound.stop()
+        _ = self.mongo.delete_from_watchlist(plate)
         self.alert_layout.removeWidget(card_widget)
         self.is_resolved.emit()
         card_widget.deleteLater()
@@ -224,7 +224,7 @@ class PlateCard(QFrame):
 
         # 1. Thumbnail
         img_label = QLabel()
-        img_label.setFixedSize(200, 200)
+        img_label.setFixedSize(70, 48)
         img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         img_label.setStyleSheet(
             "background-color: #1a1a1a; border-radius: 4px;"
@@ -236,8 +236,8 @@ class PlateCard(QFrame):
             if not pixmap.isNull():
                 img_label.setPixmap(
                     pixmap.scaled(
-                        200,
-                        200,
+                        70,
+                        48,
                         Qt.AspectRatioMode.KeepAspectRatio,
                         Qt.TransformationMode.SmoothTransformation,
                     )

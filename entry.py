@@ -15,11 +15,13 @@ from process import BowserWatchWorker
 class MainWindow(QMainWindow):
     def __init__(self):
             super().__init__()
-            self.setWindowTitle("BowserWatch — Drive-Off Prevention")
+            self.setWindowTitle("Bowser Watch — Drive-Off Prevention")
             self.resize(1440, 900)
             with open("ui/style.qss", "r") as f:
                 self.setStyleSheet(f.read())
             self.mongo = MongoDBManager()
+
+
 
             self.pump_panel = PumpControlPanel(mongo= self.mongo)
             self.sidebar = SidebarMenu()
@@ -34,6 +36,7 @@ class MainWindow(QMainWindow):
             self.worker.plate_detected.connect(self.pump_panel.refresh_queue)
             self.worker.alert_triggered.connect(self.pump_panel.add_alert)
             self.worker.start()
+
             self._build_layout()
            
            
@@ -69,7 +72,14 @@ class MainWindow(QMainWindow):
         v.addStretch(1)
         return wrap
 
-    
+    def _trigger_alert(self):
+        self.pump_panel.set_status(ok=False)
+
+    def _clear_alert(self):
+        self.pump_panel.set_status(ok=True)
+
+    def _on_manual_reset(self):
+        self._clear_alert()
 
     def _on_add_to_watchlist(self, record: dict):
         plate = record.get("plate", "").strip()
@@ -101,8 +111,8 @@ class MainWindow(QMainWindow):
     
 
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
+
+app = QApplication(sys.argv)
+window = MainWindow()
+window.show()
+sys.exit(app.exec())
