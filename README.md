@@ -4,7 +4,7 @@ Bowser Watch is a Python desktop application for fuel-station monitoring and dri
 
 ### Acrhitecture
 <div align="center">
-  <img src="Picture.png" alt="Arch" width="450"/>
+  <img src="Picture.png" alt="Arch" width="100%"/>
  </div>
 
 ## Source Code
