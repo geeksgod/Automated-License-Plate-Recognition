@@ -1,0 +1,322 @@
+# Bowser Watch — Drive-Off Prevention
+
+Bowser Watch is a desktop application built with Python and PyQt6 for monitoring fueling stations, detecting suspicious vehicles, managing a watchlist, and supporting drive-off prevention workflows. The app connects a database layer, a GUI dashboard, and a background worker that processes license plate events and alert conditions.
+
+This project is designed to help fuel stations identify vehicles with suspicious activity, track fueling transactions, and report incidents to authorities when needed.
+
+## Overview
+
+The application includes:
+
+- A pump control panel
+- A sidebar menu for navigation
+- A watchlist for suspicious plates
+- Fueling log tracking
+- Police report generation
+- A background worker for monitoring and alerting
+- MongoDB storage for persistent data
+
+## Features
+
+- Real-time pump monitoring dashboard
+- License plate detection and processing workflow
+- Alert generation for suspicious vehicle activity
+- Watchlist management
+- Fueling log review
+- Police report support
+- MongoDB-backed persistence
+- PyQt6-based desktop UI
+
+## Project Structure
+
+```text
+CV2/
+├── entry.py
+├── process/
+│   ├── __init__.py
+│   └── bowser_watch_worker.py
+├── ui/
+│   ├── __init__.py
+│   ├── style.qss
+│   ├── pumpcontrollpanel.py
+│   ├── sidemenu.py
+│   ├── watchlist.py
+│   ├── fuelingrecord.py
+│   └── reportpolice.py
+├── watcher/
+│   ├── __init__.py
+│   └── utils/
+│       ├── __init__.py
+│       └── db.py
+├── requirements.txt
+├── README.md
+├── .gitignore
+└── ...
+```
+
+## Prerequisites
+
+Before running the project, ensure the following are installed:
+
+- Python 3.10+
+- pip
+- MongoDB
+- A desktop environment that supports PyQt6
+- Git (optional)
+
+### Required Python Packages
+
+The app depends on:
+
+- PyQt6
+- pymongo
+- OpenCV (if used by the processing layer)
+- Standard Python libraries
+
+Install dependencies using:
+
+```bash
+pip install -r requirements.txt
+```
+
+If the requirements file is missing or incomplete, install the main packages manually:
+
+```bash
+pip install PyQt6 pymongo
+```
+
+If OpenCV is needed:
+
+```bash
+pip install opencv-python
+```
+
+## Installation
+
+1. Open a terminal.
+2. Navigate to the project folder:
+
+```bash
+cd /toprojectfolder 
+```
+
+3. Create a virtual environment:
+
+```bash
+python3 -m venv .venv
+```
+
+4. Activate the environment:
+
+On Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+5. Install dependencies:
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## Configuration
+
+### MongoDB
+
+The application uses `MongoDBManager` from `watcher/utils/db.py` for database access. Make sure MongoDB is running and the connection URI is valid.
+
+Typical setup:
+
+1. Start MongoDB:
+```bash
+mongod
+```
+
+2. Verify the database connection settings in:
+```python
+watcher/utils/db.py
+```
+
+Update the URI if MongoDB is not using the default localhost configuration.
+
+### UI Stylesheet
+
+The app loads the stylesheet file:
+
+```python
+ui/style.qss
+```
+
+This is loaded relative to the project root, so the app should be launched from the project directory.
+
+## Execution Steps
+
+Follow these steps to run the application:
+
+1. Change to the project directory:
+
+```bash
+cd /home/bipin/Downloads/CV2
+```
+
+2. Activate the virtual environment:
+
+```bash
+source .venv/bin/activate
+```
+
+3. Ensure MongoDB is running.
+
+4. Start the app:
+
+```bash
+python entry.py
+```
+
+or
+
+```bash
+python3 entry.py
+```
+
+5. The main PyQt window should open.
+
+## How the App Works
+
+The entry point is `entry.py`.
+
+### Main Window
+
+In `MainWindow.__init__`, the app creates the following components:
+
+- `PumpControlPanel`
+- `SidebarMenu`
+- `WatchlistPanel`
+- `FuelingLogPanel`
+- `BowserWatchWorker`
+
+Then it connects UI elements and worker signals:
+
+```python
+self.fuelingrecord.report_police_requested.connect(self._on_report_police)
+self.fuelingrecord.add_to_watchlist_requested.connect(self._on_add_to_watchlist)
+self.pump_panel.is_resolved.connect(self.watch_list.refresh)
+
+self.worker = BowserWatchWorker(mongo=self.mongo)
+self.worker.plate_detected.connect(self.pump_panel.refresh_queue)
+self.worker.alert_triggered.connect(self.pump_panel.add_alert)
+self.worker.start()
+```
+
+This allows the backend worker to send live updates to the UI.
+
+### Watchlist
+
+If a fueling record is marked as suspicious, the app may ask the user to add the vehicle plate to the watchlist:
+
+```python
+self.mongo.add_to_watchlist(plate, amount)
+```
+
+This is handled in:
+
+```python
+_on_add_to_watchlist()
+```
+
+### Reporting
+
+When the user requests a police report, the app opens a dialog:
+
+```python
+dialog = ReportPoliceDialog(record, parent=self)
+dialog.exec()
+```
+
+### Shutdown
+
+When the app closes, the database connection is cleaned up:
+
+```python
+def closeEvent(self, event):
+    self.mongo.close()
+    super().closeEvent(event)
+```
+
+## Typical Usage Flow
+
+1. Launch the application.
+2. Monitor active pump panels.
+3. Review suspicious plate alerts generated by the worker.
+4. Add flagged vehicles to the watchlist.
+5. Check fueling logs.
+6. Submit police reports when required.
+7. Resolve suspicious alerts through the interface.
+
+## Troubleshooting
+
+### 1. Application does not start
+
+Verify the dependencies are installed:
+
+```bash
+pip install -r requirements.txt
+```
+
+Also ensure you are launching from the project root.
+
+### 2. Module not found errors
+
+Make sure the virtual environment is active:
+
+```bash
+source .venv/bin/activate
+```
+
+Then run:
+
+```bash
+python entry.py
+```
+
+### 3. MongoDB connection errors
+
+Check whether MongoDB is running:
+
+```bash
+mongod
+```
+
+Then verify the connection URI in:
+
+```python
+watcher/utils/db.py
+```
+
+### 4. Style file not loading
+
+The app loads:
+
+```python
+ui/style.qss
+```
+
+Make sure the file exists and the working directory is the project root.
+
+### 5. PyQt6 errors
+
+Install the GUI dependency:
+
+```bash
+pip install PyQt6
+```
+
+## Notes
+
+- The app uses a relative stylesheet path: `ui/style.qss`
+- Running the app from another directory may break relative resource loading
+- This is a GUI desktop application and needs a display-capable environment
+- If running in a headless or remote environment, PyQt6 may require X11/Wayland support
+
