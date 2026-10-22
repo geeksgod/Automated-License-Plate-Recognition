@@ -1,7 +1,0 @@
-# requirements.txt
-
-PyQt6
-pymongo
-opencv-python
-numpy
-```
